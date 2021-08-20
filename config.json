@@ -1,0 +1,12 @@
+{
+  "linebot": {
+    "line_token": "SJCMdScjIGXlLsGNP8MnchaFXlZwgPR1fx/DRFhH+xqUskcByRSmKjfLrtSSTZNCX57Yk7v4X7IX/t9uNnk5eZdcmntv+SkScF7ub41zCZyJCo4TORF241KIv1AtYJsR9ZAiDAZbEfiivpgCEcjOMQdB04t89/1O/w1cDnyilFU=",
+    "line_secret": "0f5a0a9716979683698075f46b532745"
+  },
+  "imgur": {
+    "client_id": "2737f939f963010"
+  },
+  "liff": {
+    "liff_id": "1656315257-nkdzaMXR"
+  }
+}

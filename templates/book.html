@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LIFF 表單測試</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+</head>
+<body>
+    <div class="row" style="margin: 10px">
+        <div class="col-12" style="margin: 10px">
+            <label>姓名</label>
+            <input type="text" id="name" class="form-control" />
+            <br />
+            <label>email</label>
+            <input type="email" id="email" class="form-control" />
+            <br />
+            <label>請問您的性別是</label>
+            <select id="sel_gender" class="form-control">
+                <option selected>男</option>
+                <option>女</option>
+            </select>
+            <br />
+            <label>請問您的年齡是</label>
+            <select id="sel_age" class="form-control">
+                <option selected>17歲以下</option>
+                <option>18~29歲</option>
+                <option>30~39歲</option>
+                <option>40~49歲</option>
+                <option>50歲或以上</option>
+            </select>
+            <br />
+            <label>請問您的身高(cm)是</label>
+            <input type="text" id="height" class="form-control" />
+            <br />
+            <label>請問您的體重(kg)是</label>
+            <input type="text" id="weight" class="form-control" />
+            <br />
+            <label>請輸入您不能吃的食物或不喜愛的食物，如有多樣請以逗點隔開，若沒有請輸入無</label>
+            <input type="text" id="disliked" class="form-control" />
+            <br />
+            <label>請問您平時有注意養生</label>
+            <select id="health" class="form-control">
+                <option selected>是</option>
+                <option>否</option>
+            </select>
+            <br />
+            <label>請問您平時有避免吃油炸或含油高的食物（如腰果、花生、瓜子)</label>
+            <select id="fried" class="form-control">
+                <option selected>是</option>
+                <option>否</option>
+            </select>
+            <br />
+            <label>請問您平時有吃蔬菜或水果的習慣</label>
+            <select id="vegetable" class="form-control">
+                <option selected>是</option>
+                <option>否</option>
+            </select>
+            <br />
+            <label>請問您平時工作的活動量</label>
+            <select id="activity" class="form-control">
+                <option selected>輕度活動</option>
+                <option>中度活動</option>
+                <option>高度活動</option>
+            </select>
+            <br />
+            
+          
+            <button class="btn btn-success btn-block" id="sure">確定</button>
+        </div>
+    </div>
+
+    <script src="https://static.line-scdn.net/liff/edge/2.1/sdk.js"></script>
+<script>
+        function initializeLiff(myLiffId) {
+            liff
+                .init({
+                    liffId: myLiffId
+                });
+        }
+ function pushMsg(pname, pemail, pgender, page, pheight, pweight, pdisliked, phealth, pfried, pvegetable, pactivity) {
+  if (pname == '' || pemail == '' || pgender == '' || page == ''|| pheight == '' || pweight =='' || pdisliked =='' || phealth == '' || pfried == '' || pvegetable == '' || pactivity == '' ) {  //資料檢查
+   alert('每個項目都必須輸入！');
+  return;
+  }
+  var msg = "###";  //回傳訊息字串
+  msg = msg + pname + "/";
+  msg = msg + pemail + "/";
+  msg = msg + pgender + "/";
+  msg = msg + page + "/";
+  msg = msg + pheight + "/";
+  msg = msg + pweight + "/";
+  msg = msg + pdisliked + "/";
+  msg = msg + phealth + "/";
+  msg = msg + pfried + "/";
+  msg = msg + pvegetable + "/";
+  msg = msg + pactivity;
+  liff.sendMessages([  //推播訊息
+   { type: 'text',
+     text: msg
+   }
+  ])
+   .then(() => {
+    liff.closeWindow();  //關閉視窗
+   });
+ }
+
+ $(document).ready(function () {
+  initializeLiff('1656315257-nkdzaMXR');
+  $('#sure').click(function (e) {  //按下確定鈕
+   pushMsg($('#name').val(), $('#email').val(), $('#sel_gender').val(),$('#sel_age').val(),$('#height').val(),$('#weight').val(),$('#disliked').val(),$('#health').val(),$('#fried').val(),$('#vegetable').val(),$('#activity').val());
+  });
+ });
+</script>
+</body>
+</html>

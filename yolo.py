@@ -23,13 +23,13 @@ from utils.utils import (DecodeBox, letterbox_image, non_max_suppression,
 #--------------------------------------------#
 class YOLO(object):
     _defaults = {
-        "model_path"        : 'model_data/yolo4_weights.pth',
+        "model_path"        : 'model_data/yolo4_weights2.pth',
         "anchors_path"      : 'model_data/yolo_anchors.txt',
-        "classes_path"      : 'model_data/coco_classes.txt',
+        "classes_path"      : 'model_data/my_classes.txt',
         "model_image_size"  : (416, 416, 3),
         "confidence"        : 0.5,
-        "iou"               : 0.3,
-        "cuda"              : True,
+        "iou"               : 0.5,
+        "cuda"              : False, #True,
         #---------------------------------------------------------------------#
         #   该变量用于控制是否使用letterbox_image对输入图像进行不失真的resize，
         #   在多次测试后，发现关闭letterbox_image直接resize的效果更好
@@ -212,7 +212,7 @@ class YOLO(object):
             draw = ImageDraw.Draw(image)
             label_size = draw.textsize(label, font)
             label = label.encode('utf-8')
-            print(label, top, left, bottom, right)
+            # print(label, top, left, bottom, right)
             
             if top - label_size[1] >= 0:
                 text_origin = np.array([left, top - label_size[1]])
@@ -229,6 +229,93 @@ class YOLO(object):
             draw.text(text_origin, str(label,'UTF-8'), fill=(0, 0, 0), font=font)
             del draw
         return image
+
+    def class_image(self, image):
+        # ---------------------------------------------------------#
+        #   在这里将图像转换成RGB图像，防止灰度图在预测时报错。
+        # ---------------------------------------------------------#
+        image = image.convert('RGB')
+
+        image_shape = np.array(np.shape(image)[0:2])
+        # ---------------------------------------------------------#
+        #   给图像增加灰条，实现不失真的resize
+        #   也可以直接resize进行识别
+        # ---------------------------------------------------------#
+        if self.letterbox_image:
+            crop_img = np.array(letterbox_image(image, (self.model_image_size[1], self.model_image_size[0])))
+        else:
+            crop_img = image.resize((self.model_image_size[1], self.model_image_size[0]), Image.BICUBIC)
+        photo = np.array(crop_img, dtype=np.float32) / 255.0
+        photo = np.transpose(photo, (2, 0, 1))
+        # ---------------------------------------------------------#
+        #   添加上batch_size维度
+        # ---------------------------------------------------------#
+        images = [photo]
+
+        with torch.no_grad():
+            images = torch.from_numpy(np.asarray(images))
+            if self.cuda:
+                images = images.cuda()
+
+            # ---------------------------------------------------------#
+            #   将图像输入网络当中进行预测！
+            # ---------------------------------------------------------#
+            outputs = self.net(images)
+            output_list = []
+            for i in range(3):
+                output_list.append(self.yolo_decodes[i](outputs[i]))
+
+            # ---------------------------------------------------------#
+            #   将预测框进行堆叠，然后进行非极大抑制
+            # ---------------------------------------------------------#
+            output = torch.cat(output_list, 1)
+            batch_detections = non_max_suppression(output, len(self.class_names),
+                                                   conf_thres=self.confidence,
+                                                   nms_thres=self.iou)
+
+            # ---------------------------------------------------------#
+            #   如果没有检测出物体，返回原图
+            # ---------------------------------------------------------#
+            try:
+                batch_detections = batch_detections[0].cpu().numpy()
+            except:
+                return image
+
+            # ---------------------------------------------------------#
+            #   对预测框进行得分筛选
+            # ---------------------------------------------------------#
+            top_index = batch_detections[:, 4] * batch_detections[:, 5] > self.confidence
+            top_conf = batch_detections[top_index, 4] * batch_detections[top_index, 5]
+            top_label = np.array(batch_detections[top_index, -1], np.int32)
+            top_bboxes = np.array(batch_detections[top_index, :4])
+            top_xmin, top_ymin, top_xmax, top_ymax = np.expand_dims(top_bboxes[:, 0], -1), np.expand_dims(
+                top_bboxes[:, 1], -1), np.expand_dims(top_bboxes[:, 2], -1), np.expand_dims(top_bboxes[:, 3], -1)
+
+            # -----------------------------------------------------------------#
+            #   在图像传入网络预测前会进行letterbox_image给图像周围添加灰条
+            #   因此生成的top_bboxes是相对于有灰条的图像的
+            #   我们需要对其进行修改，去除灰条的部分。
+            # -----------------------------------------------------------------#
+            if self.letterbox_image:
+                boxes = yolo_correct_boxes(top_ymin, top_xmin, top_ymax, top_xmax,
+                                           np.array([self.model_image_size[0], self.model_image_size[1]]), image_shape)
+            else:
+                top_xmin = top_xmin / self.model_image_size[1] * image_shape[1]
+                top_ymin = top_ymin / self.model_image_size[0] * image_shape[0]
+                top_xmax = top_xmax / self.model_image_size[1] * image_shape[1]
+                top_ymax = top_ymax / self.model_image_size[0] * image_shape[0]
+                boxes = np.concatenate([top_ymin, top_xmin, top_ymax, top_xmax], axis=-1)
+
+        font = ImageFont.truetype(font='model_data/simhei.ttf',
+                                  size=np.floor(3e-2 * np.shape(image)[1] + 0.5).astype('int32'))
+
+        thickness = max((np.shape(image)[0] + np.shape(image)[1]) // self.model_image_size[0], 1)
+
+        class_cache=[]
+        for i, c in enumerate(top_label):
+            predicted_class = self.class_names[c]
+            class_cache.append(predicted_class)
+        return(class_cache)
 
     def get_FPS(self, image, test_interval):
         # 调整图片使其符合输入要求
@@ -317,3 +404,105 @@ class YOLO(object):
         tact_time = (t2 - t1) / test_interval
         return tact_time
 
+    def get_coordinate(self, image):
+        # ---------------------------------------------------------#
+        #   在这里将图像转换成RGB图像，防止灰度图在预测时报错。
+        # ---------------------------------------------------------#
+        image = image.convert('RGB')
+
+        image_shape = np.array(np.shape(image)[0:2])
+        # ---------------------------------------------------------#
+        #   给图像增加灰条，实现不失真的resize
+        #   也可以直接resize进行识别
+        # ---------------------------------------------------------#
+        if self.letterbox_image:
+            crop_img = np.array(letterbox_image(image, (self.model_image_size[1], self.model_image_size[0])))
+        else:
+            crop_img = image.resize((self.model_image_size[1], self.model_image_size[0]), Image.BICUBIC)
+        photo = np.array(crop_img, dtype=np.float32) / 255.0
+        photo = np.transpose(photo, (2, 0, 1))
+        # ---------------------------------------------------------#
+        #   添加上batch_size维度
+        # ---------------------------------------------------------#
+        images = [photo]
+
+        with torch.no_grad():
+            images = torch.from_numpy(np.asarray(images))
+            if self.cuda:
+                images = images.cuda()
+
+            # ---------------------------------------------------------#
+            #   将图像输入网络当中进行预测！
+            # ---------------------------------------------------------#
+            outputs = self.net(images)
+            output_list = []
+            for i in range(3):
+                output_list.append(self.yolo_decodes[i](outputs[i]))
+
+            # ---------------------------------------------------------#
+            #   将预测框进行堆叠，然后进行非极大抑制
+            # ---------------------------------------------------------#
+            output = torch.cat(output_list, 1)
+            batch_detections = non_max_suppression(output, len(self.class_names),
+                                                   conf_thres=self.confidence,
+                                                   nms_thres=self.iou)
+
+            # ---------------------------------------------------------#
+            #   如果没有检测出物体，返回原图
+            # ---------------------------------------------------------#
+            try:
+                batch_detections = batch_detections[0].cpu().numpy()
+            except:
+                return image
+
+            # ---------------------------------------------------------#
+            #   对预测框进行得分筛选
+            # ---------------------------------------------------------#
+            top_index = batch_detections[:, 4] * batch_detections[:, 5] > self.confidence
+            top_conf = batch_detections[top_index, 4] * batch_detections[top_index, 5]
+            top_label = np.array(batch_detections[top_index, -1], np.int32)
+            top_bboxes = np.array(batch_detections[top_index, :4])
+            top_xmin, top_ymin, top_xmax, top_ymax = np.expand_dims(top_bboxes[:, 0], -1), np.expand_dims(
+                top_bboxes[:, 1], -1), np.expand_dims(top_bboxes[:, 2], -1), np.expand_dims(top_bboxes[:, 3], -1)
+
+            # -----------------------------------------------------------------#
+            #   在图像传入网络预测前会进行letterbox_image给图像周围添加灰条
+            #   因此生成的top_bboxes是相对于有灰条的图像的
+            #   我们需要对其进行修改，去除灰条的部分。
+            # -----------------------------------------------------------------#
+            if self.letterbox_image:
+                boxes = yolo_correct_boxes(top_ymin, top_xmin, top_ymax, top_xmax,
+                                           np.array([self.model_image_size[0], self.model_image_size[1]]), image_shape)
+            else:
+                top_xmin = top_xmin / self.model_image_size[1] * image_shape[1]
+                top_ymin = top_ymin / self.model_image_size[0] * image_shape[0]
+                top_xmax = top_xmax / self.model_image_size[1] * image_shape[1]
+                top_ymax = top_ymax / self.model_image_size[0] * image_shape[0]
+                boxes = np.concatenate([top_ymin, top_xmin, top_ymax, top_xmax], axis=-1)
+
+        font = ImageFont.truetype(font='model_data/simhei.ttf',
+                                  size=np.floor(3e-2 * np.shape(image)[1] + 0.5).astype('int32'))
+
+        thickness = max((np.shape(image)[0] + np.shape(image)[1]) // self.model_image_size[0], 1)
+
+        for i, c in enumerate(top_label):
+            predicted_class = self.class_names[c]
+            score = top_conf[i]
+
+            top, left, bottom, right = boxes[i]
+            top = top - 5
+            left = left - 5
+            bottom = bottom + 5
+            right = right + 5
+
+            top = max(0, np.floor(top + 0.5).astype('int32'))
+            left = max(0, np.floor(left + 0.5).astype('int32'))
+            bottom = min(np.shape(image)[0], np.floor(bottom + 0.5).astype('int32'))
+            right = min(np.shape(image)[1], np.floor(right + 0.5).astype('int32'))
+
+            # 画框框
+            label = '{} {:.2f}'.format(predicted_class, score)
+            draw = ImageDraw.Draw(image)
+            label_size = draw.textsize(label, font)
+            label = label.encode('utf-8')
+            return(label, top, left, bottom, right)

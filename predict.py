@@ -8,8 +8,11 @@ import time
 import cv2
 import numpy as np
 from PIL import Image
+import os
 
 from yolo import YOLO
+
+savepath = "./imageoutput"
 
 if __name__ == "__main__":
     yolo = YOLO()
@@ -44,14 +47,19 @@ if __name__ == "__main__":
         '''
         while True:
             img = input('Input image filename:')
+            image_name = img.split('/')[1]
             try:
                 image = Image.open(img)
             except:
                 print('Open Error! Try again!')
                 continue
             else:
+                # 輸出圖片資訊，r_image為經過yolo模組後判定並標示後的圖片；c_image包含label及box座標資訊；c_name為加工後的label名稱
                 r_image = yolo.detect_image(image)
-                r_image.show()
+                r_image.save(os.path.join(savepath,image_name))
+                c_name = yolo.class_image(image)
+                #  = str(list(c_image)[0]).split()[0].split("\'")[1]
+                print(c_name)
 
     elif mode == "video":
         capture=cv2.VideoCapture(video_path)
@@ -92,8 +100,8 @@ if __name__ == "__main__":
 
     elif mode == "fps":
         test_interval = 100
-        img = Image.open('img/street.jpg')
+        img = Image.open('img/便當101.jpg')
         tact_time = yolo.get_FPS(img, test_interval)
-        print(str(tact_time) + ' seconds, ' + str(1/tact_time) + 'FPS, @batch_size 1')
+        print(str(tact_time) + ' seconds, ' + str(1/tact_time) + 'FPS, @batch_size 1' )
     else:
         raise AssertionError("Please specify the correct mode: 'predict', 'video' or 'fps'.")

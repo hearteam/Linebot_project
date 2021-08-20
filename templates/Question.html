@@ -1,0 +1,91 @@
+<!DOCTYPE html> 
+<html> 
+	<head>
+		<link rel="stylesheet" href="/static/main.css">
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+		<title> 問卷調查</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<style>
+			body{
+					margin:0px;
+					padding:0px;
+					background:rgb(255,223,217) url("./image/background2.png") center center fixed no-repeat;　//設定背景圖片的呈現方式
+					background-size: cover;
+				}
+
+		</style>
+	</head>
+	<body>
+		<h1> <p align="center"> 歡迎加入掌握食積</p> </h1>
+			<div style="background-color:rgb(255,223,217); width:500px; height:700px;margin:0 auto;">
+				<form method='post' action="/">
+					<p align="left"> 姓名：<input type="text" name="username"/> </p>
+
+					<p align="left"> e-mail：<input type="text" name="email"/> </p>
+
+					<p align="left"> 1.請問您的性別是：</p>
+
+					<p align="left">
+					<input type="radio" name="gender" value="1"/> 男
+					<input type="radio" name="gender" value="0"/> 女
+					</p>
+
+					<p align="left"> 2.請問您的年齡是:</p>
+
+					<p align="left">
+					<input type="radio" name="age" value="1"/> 17歲以下
+					<input type="radio" name="age" value="2"/> 18~29歲
+					<input type="radio" name="age" value="3"/> 30~39歲
+					<input type="radio" name="age" value="4"/> 40~49歲
+					<input type="radio" name="age" value="5"/> 50歲或以上
+					</p>
+
+					<p align="left">
+					3.請問您的身高(cm)是 : <input type="int" name="height"/>
+					</p>
+					<p align="left">
+					4.請問您的體重(kg)是 : <input type="int" name="weight"/>
+					</p>
+					<p align="left">
+					5.請輸入您不能吃的食物或不喜愛的食物 : <input type="text" name="disliked"/>
+					</p>
+					<p align="left">
+					6.請問您平時有注意養生? :
+					</p>
+					<p align="left">
+					<input type="radio" name="health" value="1"/> 是
+					<input type="radio" name="health" value="0"/> 否
+					</p>
+					<p align="left">
+					7.請問您平時有避免吃油炸或含油高的食物（如腰果、花生、瓜子) ? :
+					</p>
+					<p align="left">
+					<input type="radio" name="fried" value="1"/> 是
+					<input type="radio" name="fried" value="0"/> 否
+					</p>
+					<p align="left">
+					8.請問您平時有吃蔬菜或水果的習慣 ? :
+					</p>
+					<p align="left">
+					<input type="radio" name="vegetable" value="1"/> 是
+					<input type="radio" name="vegetable" value="0"/> 否
+					</p>
+					<p align="left">
+					9.請問您平時工作的活動量 :
+					</p>
+					<p align="left">
+					<input type="radio" name="activity" value="1"/> 輕度活動
+					<input type="radio" name="activity" value="2"/> 中度活動
+					<input type="radio" name="activity" value="3"/> 高度活動
+					</p>
+					<p align="center">
+<!--					<input type="submit" /> </p>-->
+					<button class="btn btn-success btn-block"
+							id="btn_reserve">確定</button>
+				</form>
+			</div>
+		<footer>
+			<p align="center" class="pagetop"> <a href="#top"> ▲回到本頁開頭</a> </p>
+		</footer>
+	</body>
+</html> 
